@@ -3,5 +3,9 @@
 # Description: Global dependencies
 # ---------------------------------------------------------------------------- #
 
-library(languageserver)
+library(gt)
 library(httpgd)
+library(languageserver)
+library(tidyverse)
+library(viridis)
+library(webshot2)

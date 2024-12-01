@@ -1,0 +1,349 @@
+---
+title: src\projects\contango-strategy\contango-strategy.Rmd
+date: 2024-12-01
+description: Contango as an indicator for short strangles on SPY
+---
+
+```{r}
+library(tidyverse)
+
+setwd(paste0(getwd(), "/src/projects/contango-strategy"))
+```
+
+# Load strangle PnL data from big query
+
+```{r}
+strangle_tbl <- read_csv(
+    file = "data/strangle_data.csv",
+    show_col_types = FALSE
+)
+
+# strangle_tbl |>
+#     View()
+```
+
+# Strangle pnl EDA
+
+```{r}
+# strangle_tbl |>
+#     View()
+
+strangle_tbl |>
+    select(contains("short_strangle")) |>
+    summary()
+```
+
+ <!-- 
+ short_strangle_dollar_pnl short_strangle_pct_pnl
+ Min.   :-35.8000          Min.   :-20.8140
+ 1st Qu.: -0.2950          1st Qu.: -0.1676
+ Median :  1.3600          Median :  0.9704
+ Mean   :  0.1686          Mean   :  0.1105
+ 3rd Qu.:  2.0100          3rd Qu.:  0.9928
+ Max.   :  7.4900          Max.   :  0.9983
+ -->
+
+```{r}
+strangle_tbl |>
+    select(short_strangle_pct_pnl) |>
+    pivot_longer(everything()) |>
+    ggplot(aes(x = value, fill = name)) +
+    geom_histogram(bins = 100) +
+    scale_x_continuous(labels = scales::percent) +
+    scale_fill_manual(
+        values = viridis::viridis(1, option = "E"),
+        labels = c("short_strangle_pct_pnl" = "SPY")
+    ) +
+    labs(
+        title = "SPY Short Strangle Returns",
+        subtitle = "Returns on 7DTE 20Delta short strangles",
+        x = "Short Strangle Return",
+        y = "",
+        fill = ""
+    )
+
+ggsave("assets/strangle_distribution.png", height = 4, width = 8)
+```
+
+```{r}
+# strangle_tbl |>
+#     mutate(cum_sum = cumsum(short_strangle_dollar_pnl)) |>
+#     ggplot(aes(x = date_entry, y = cum_sum, color = "SPY")) +
+#     geom_line() +
+#     scale_y_continuous(labels = scales::dollar) +
+#     viridis::scale_color_viridis(discrete = TRUE) +
+#     labs(
+#         title = "SPY Short Strangle Cumulative Returns",
+#         subtitle = sprintf(
+#             "Cumulative sum of 7DTE 20Delta short strangle returns. %s to %s",
+#             min(strangle_tbl$date_entry),
+#             max(strangle_tbl$date_entry)
+#         ),
+#         x = "",
+#         y = "Short Strangle Returns",
+#         color = "Ticker"
+#     )
+
+# ggsave("assets/pa_strangle_cum_pnl.png", height = 4, width = 8)
+```
+
+# Pulling contango data
+
+```{r}
+contango_res <- read_csv(
+    sprintf(
+        "https://api.orats.io/datav2/hist/cores.csv?token=%s&ticker=SPY&fields=ticker,tradeDate,contango",
+        Sys.getenv("ORATS_API")
+    ),
+    show_col_types = FALSE
+)
+
+contango_tbl <- contango_res |>
+    rename("tradedate" = tradeDate) |>
+    arrange(tradedate) |>
+    mutate(lagged_contango = lag(contango))
+
+# contango_tbl |>
+#     View()
+```
+
+# Merging contango indicator with strangle pnl
+
+```{r}
+base_tbl <- strangle_tbl |>
+    select(date_entry, contains("short_strangle")) |>
+    left_join(contango_tbl[, c("tradedate", "lagged_contango")], by = c("date_entry" = "tradedate"))
+
+# base_tbl |>
+#     summary()
+```
+
+# Creating deciles
+
+```{r}
+# First, calculate the max values per bucket and store them
+bucket_maxes <- base_tbl |>
+    mutate(contango_ntile = ntile(lagged_contango, 10)) |>
+    group_by(contango_ntile) |>
+    summarize(max_contango = max(lagged_contango))
+
+# Now create the plot with custom labels
+base_tbl |>
+    mutate(contango_ntile = ntile(lagged_contango, 10)) |>
+    group_by(contango_ntile) |>
+    summarize(mean_pnl = mean(short_strangle_pct_pnl)) |>
+    # mutate(name = "deciles") |>
+    ggplot(aes(x = contango_ntile, y = mean_pnl, fill = "deciles")) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_continuous(
+        breaks = 1:10,
+        labels = function(x) {
+            # Create two-line labels using the stored max values
+            paste0(x, "\n<= ", round(bucket_maxes$max_contango[x], 2))
+        }
+    ) +
+    scale_fill_manual(
+        values = viridis::viridis(1, option = "E")
+    ) +
+    labs(
+        title = "Contango Decile vs Mean Short Strangle PnL",
+        subtitle = sprintf(
+            "SPY contango and 7dte 20delta short strangle percent returns. %s to %s",
+            min(base_tbl$date_entry),
+            max(base_tbl$date_entry)
+        ),
+        x = "Contango Deciles",
+        y = "Mean Short Strangle Returns"
+    ) +
+    theme(legend.position = "none")
+
+ggsave("assets/contango_deciles.png", height = 4, width = 8)
+```
+
+# Creating deciles across years
+
+```{r}
+base_tbl |>
+    mutate(year = year(date_entry)) |>
+    group_by(year) |>
+    mutate(contango_ntile = ntile(lagged_contango, 10)) |>
+    group_by(year, contango_ntile) |>
+    summarize(mean_pnl = mean(short_strangle_pct_pnl)) |>
+    ggplot(aes(x = contango_ntile, y = mean_pnl, group = year, fill = "name")) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_continuous(breaks = 1:10) +
+        scale_fill_manual(
+        values = viridis::viridis(1, option = "E")
+    ) +
+    labs(
+        title = "Contango Decile vs Mean Short Strangle PnL by Year",
+        subtitle = "SPY contango and 7dte 20delta short strangle percent returns by year",
+        x = "Contango Deciles",
+        y = "Mean Short Strangle Returns"
+    ) +
+    facet_wrap(~year, scales = "free") +
+    theme(legend.position = "none")
+
+ggsave("assets/contango_deciles_years.png", height = 6, width = 8)
+```
+
+# Comparing portfolio with indicator to benchmark
+
+```{r}
+portfolios_tbl <- base_tbl |>
+    filter(lagged_contango > 0) |>
+    rename_all(function(x) str_replace(x, "short_strangle", "contango_strat")) |>
+    mutate(
+        across(contains("pnl"), function(x) cumsum(x), .names = "cum_{.col}")
+    ) |>
+    select(-lagged_contango) |>
+    right_join(base_tbl, by = "date_entry") |>
+    arrange(date_entry) |>
+    mutate(across(contains("short_strangle"), function(x) cumsum(x), .names = "cum_{.col}")) |>
+    # NA's are created at the beginning of cum where there's nothing to fill in
+    fill(c(cum_contango_strat_dollar_pnl, cum_contango_strat_pct_pnl), .direction = "down") |>
+    # Therefore, can replace NA's with 0
+    replace_na(list(
+        cum_contango_strat_dollar_pnl = 0,
+        cum_contango_strat_pct_pnl = 0
+    )) |>
+    select(date_entry, lagged_contango, contains("contango_strat"), contains("short_strangle"))
+
+portfolios_tbl |>
+    select(date_entry, cum_contango_strat_dollar_pnl, cum_short_strangle_dollar_pnl) |>
+    pivot_longer(2:3) |>
+    arrange(name, date_entry) |>
+    ggplot(aes(x = date_entry, y = value * 100, color = name)) +
+    geom_line() +
+    scale_y_continuous(labels = scales::dollar) +
+    labs(
+        title = "SPY's Contango Strategy vs Benchmark",
+        subtitle = sprintf("from %s to %s", min(portfolios_tbl$date_entry), max(portfolios_tbl$date_entry)),
+        x = "",
+        y = "Cumulative sum of dollar returns",
+        caption = str_wrap(
+            "Contango portfolio enters a 7dte 20delta short strangle position whenever the previous' day contango is above 0 and stays in that position until expiration. Benchmark is a simple short strangle without any signals.",
+            width = 100
+        ),
+        color = "Portfolios"
+    ) +
+    scale_color_manual(
+        values = viridis::viridis(3)[c(1, 2)],
+        labels = c("cum_contango_strat_dollar_pnl" = "Contango Strategy", "cum_short_strangle_dollar_pnl" = "Benchmark")
+    )
+
+ggsave("assets/compare_portfolios.png", height = 4, width = 8)
+```
+
+# Save data
+
+```{r}
+# write_csv(base_tbl, "data/base_tbl.csv")
+
+# strangle_tbl |>
+#     select(-c(short_strangle_dollar_pnl, short_strangle_pct_pnl)) |>
+#     left_join(portfolios_tbl, by = "date_entry") |>
+#     write_csv("data/full_data.csv")
+```
+
+# Summary statistics
+
+```{r}
+summary_tbl <- portfolios_tbl |>
+    select(
+        date_entry,
+        contango_strat_dollar_pnl,
+        contango_strat_pct_pnl,
+        short_strangle_dollar_pnl,
+        short_strangle_pct_pnl
+    ) |>
+    pivot_longer(
+        cols = -date_entry,
+        names_to = c("strategy", "metric"),
+        names_pattern = "(.+)_(.+)_pnl",
+        values_to = "value"
+    ) |>
+    pivot_wider(
+        names_from = metric,
+        values_from = value
+    ) |>
+    arrange(strategy, date_entry) |>
+    drop_na(dollar, pct) |>
+    group_by(strategy) |>
+    mutate(dollar = dollar * 100) |>
+    reframe(
+        total_dollar_pnl = sum(dollar),
+        lowest_dollar_pnl = min(dollar),
+        median_dollar_pnl = median(dollar),
+        mean_dollar_pnl = mean(dollar),
+        stdev = round(sd(pct), 2),
+        trades = n()
+    ) |>
+    mutate(
+        strategy = c("Contango Strategy", "Benchmark"),
+        across(contains("dollar"), function(x) scales::dollar(x)),
+        across(contains("pct"), function(x) scales::percent(x))
+    ) |>
+    rename(
+        " " = strategy,
+        "Total PnL" = total_dollar_pnl,
+        "Max Loss" = lowest_dollar_pnl,
+        "Median Return" = median_dollar_pnl,
+        "Mean Return" = mean_dollar_pnl,
+        "StdDev" = stdev,
+        "Trades" = trades
+    ) |>
+    arrange(` `)
+
+# write_csv(summary_tbl, "data/summary_tbl.csv")
+```
+
+<!-- 
+# A tibble: 2 x 7
+  ` `               `Total PnL` `Max Loss` `Median Return` `Mean Return` StdDev Trades
+  <chr>             <chr>       <chr>      <chr>           <chr>          <dbl>  <int>
+1 Benchmark         $18,024.00  -$3,580.00 $136            $16.86          1.71   1069
+2 Contango Strategy $16,290.50  -$3,580.00 $125            $21.29          1.78    765
+-->
+
+```{r}
+library(gt)
+
+summary_tbl |>
+    rename(" " = 1) |>
+    gt() |>
+    tab_header(title = "Portfolio Summaries") |>
+    gtsave("assets/summary_tbl.png")
+```
+
+# Linear regression between contango and short strangle return
+
+```{r}
+portfolios_tbl |>
+    lm(short_strangle_pct_pnl ~ lagged_contango, data = _) |>
+    summary()
+```
+
+<!-- 
+
+Call:
+lm(formula = short_strangle_pct_pnl ~ lagged_contango, data = portfolios_tbl)
+
+Residuals:
+     Min       1Q   Median       3Q      Max
+-20.9666  -0.2962   0.7752   0.8591   1.8080
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)      0.08545    0.05331   1.603   0.1093
+lagged_contango  0.15983    0.06941   2.303   0.0215 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.706 on 1067 degrees of freedom
+Multiple R-squared:  0.004944,  Adjusted R-squared:  0.004012
+F-statistic: 5.302 on 1 and 1067 DF,  p-value: 0.02149
+
+-->

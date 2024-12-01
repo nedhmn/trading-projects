@@ -5,6 +5,7 @@
   "[rmd]": {
     "editor.defaultFormatter": "REditorSupport.r"
   },
+  "editor.formatOnSave": true,
   "editor.formatOnType": true,
   "files.associations": {
     "*.Renviron*": "properties",
