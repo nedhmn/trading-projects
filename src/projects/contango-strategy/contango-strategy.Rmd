@@ -51,8 +51,8 @@ strangle_tbl |>
     geom_histogram(bins = 100) +
     scale_x_continuous(labels = scales::percent) +
     scale_fill_manual(
-        values = viridis::viridis(1, option = "E"),
-        labels = c("short_strangle_pct_pnl" = "SPY")
+        values = viridis::viridis(1, option = "E")
+        # labels = c("short_strangle_pct_pnl" = "SPY")
     ) +
     labs(
         title = "SPY Short Strangle Returns",
@@ -60,7 +60,8 @@ strangle_tbl |>
         x = "Short Strangle Return",
         y = "",
         fill = ""
-    )
+    ) +
+    theme(legend.position = "none")
 
 ggsave("assets/strangle_distribution.png", height = 4, width = 8)
 ```
@@ -174,7 +175,7 @@ base_tbl |>
     geom_col() +
     scale_y_continuous(labels = scales::percent) +
     scale_x_continuous(breaks = 1:10) +
-        scale_fill_manual(
+    scale_fill_manual(
         values = viridis::viridis(1, option = "E")
     ) +
     labs(
@@ -347,3 +348,4 @@ Multiple R-squared:  0.004944,  Adjusted R-squared:  0.004012
 F-statistic: 5.302 on 1 and 1067 DF,  p-value: 0.02149
 
 -->
+

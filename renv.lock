@@ -240,6 +240,17 @@
       ],
       "Hash": "40415719b5a479b87949f3aa0aee737c"
     },
+    "box": {
+      "Package": "box",
+      "Version": "1.2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "tools"
+      ],
+      "Hash": "d94049c1d9446b0abb413fde9e82a505"
+    },
     "brew": {
       "Package": "brew",
       "Version": "1.0-10",

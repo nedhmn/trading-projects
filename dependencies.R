@@ -3,6 +3,7 @@
 # Description: Global dependencies
 # ---------------------------------------------------------------------------- #
 
+library(box)
 library(gt)
 library(httpgd)
 library(languageserver)

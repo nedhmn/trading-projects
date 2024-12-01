@@ -5,8 +5,8 @@
   "[rmd]": {
     "editor.defaultFormatter": "REditorSupport.r"
   },
-  "editor.formatOnSave": true,
   "editor.formatOnType": true,
+  "editor.formatOnSave": true,
   "files.associations": {
     "*.Renviron*": "properties",
     "renv.lock": "json"
