@@ -7,6 +7,10 @@ description: Contango as an indicator for short strangles on SPY
 ```{r}
 library(tidyverse)
 
+box::use(
+    src / utils / aesthetics[nedhmn_palette, nedhmn_theme],
+)
+
 setwd(paste0(getwd(), "/src/projects/contango-strategy"))
 ```
 
@@ -52,7 +56,6 @@ strangle_tbl |>
     scale_x_continuous(labels = scales::percent) +
     scale_fill_manual(
         values = viridis::viridis(1, option = "E")
-        # labels = c("short_strangle_pct_pnl" = "SPY")
     ) +
     labs(
         title = "SPY Short Strangle Returns",
@@ -64,28 +67,6 @@ strangle_tbl |>
     theme(legend.position = "none")
 
 ggsave("assets/strangle_distribution.png", height = 4, width = 8)
-```
-
-```{r}
-# strangle_tbl |>
-#     mutate(cum_sum = cumsum(short_strangle_dollar_pnl)) |>
-#     ggplot(aes(x = date_entry, y = cum_sum, color = "SPY")) +
-#     geom_line() +
-#     scale_y_continuous(labels = scales::dollar) +
-#     viridis::scale_color_viridis(discrete = TRUE) +
-#     labs(
-#         title = "SPY Short Strangle Cumulative Returns",
-#         subtitle = sprintf(
-#             "Cumulative sum of 7DTE 20Delta short strangle returns. %s to %s",
-#             min(strangle_tbl$date_entry),
-#             max(strangle_tbl$date_entry)
-#         ),
-#         x = "",
-#         y = "Short Strangle Returns",
-#         color = "Ticker"
-#     )
-
-# ggsave("assets/pa_strangle_cum_pnl.png", height = 4, width = 8)
 ```
 
 # Pulling contango data
@@ -273,7 +254,7 @@ summary_tbl <- portfolios_tbl |>
     arrange(strategy, date_entry) |>
     drop_na(dollar, pct) |>
     group_by(strategy) |>
-    mutate(dollar = dollar * 100) |>
+    mutate(dollar = scales::dollar * 100) |>
     reframe(
         total_dollar_pnl = sum(dollar),
         lowest_dollar_pnl = min(dollar),
