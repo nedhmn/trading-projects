@@ -14,7 +14,7 @@
 nedhmn_theme <- function(show_legend = FALSE) {
     # Dependencies
     box::use(
-        ggplot2[element_blank, element_line, element_rect, element_text, theme],
+        ggplot2[element_blank, element_line, element_rect, element_text, margin, theme],
     )
 
     theme(
@@ -32,6 +32,7 @@ nedhmn_theme <- function(show_legend = FALSE) {
         panel.grid.major = element_line(color = "#e5e7eb54", linetype = 2, linewidth = 0.1),
         panel.grid.minor = element_line(color = "#e5e7eb54", linetype = 2, linewidth = 0.1),
         plot.background = element_rect(fill = "#030712", linewidth = 0),
+        plot.caption = element_text(color = "#d1d5db", size = 8),
         plot.margin = margin(5, 15, 5, 10),
         plot.subtitle = element_text(color = "#d1d5db", size = 10, margin = margin(0, 0, 10, 0)),
         plot.title = element_text(color = "#fff", face = "bold", size = 14, margin = margin(5, 0, 5, 0)),
