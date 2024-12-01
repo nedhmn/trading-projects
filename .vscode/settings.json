@@ -1,0 +1,13 @@
+{
+  "[r]": {
+    "editor.defaultFormatter": "REditorSupport.r"
+  },
+  "[rmd]": {
+    "editor.defaultFormatter": "REditorSupport.r"
+  },
+  "editor.formatOnType": true,
+  "files.associations": {
+    "*.Renviron*": "properties",
+    "renv.lock": "json"
+  }
+}
