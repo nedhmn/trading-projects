@@ -231,7 +231,7 @@ base_tbl |>
             price_summaries$sd
         ),
         x = "Strangle Prices",
-        y = ""
+        y = "Frequency"
     ) +
     # theme(legend.position = "none")
     nedhmn_theme()
@@ -242,7 +242,7 @@ ggsave("assets/blog-strangle-prices-distribution.png", width = 8, height = 4)
 # EDA - Contango
 
 ```{r}
-
+# TODO
 ```
 
 # Decile Analysis
