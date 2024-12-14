@@ -5,5 +5,5 @@
 
 #' @export
 box::use(
-    src / utils / aesthetics,
+    packages / utils / aesthetics,
 )

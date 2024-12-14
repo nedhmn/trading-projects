@@ -11,10 +11,8 @@ library(gt)
 library(tidyverse)
 
 box::use(
-    src / utils / aesthetics[nedhmn_palette, nedhmn_theme],
+    packages / utils / aesthetics[nedhmn_palette, nedhmn_theme],
 )
-
-setwd(paste0(getwd(), "/src/projects/contango-strategy"))
 ```
 
 # Load Strangle Data
@@ -24,7 +22,7 @@ Ran [this big query sql script](scripts/bq-spy-strangle-query.sql) to calculate 
 ```{r}
 # Read the data
 bq_strangle_tbl <- read_csv(
-    file = "data/bq-strangle-tbl.csv",
+    file = "apps/contango-strategy/data/bq-strangle-tbl.csv",
     show_col_types = FALSE
 )
 
@@ -149,7 +147,7 @@ base_tbl |>
     # theme(legend.position = "none")
     nedhmn_theme()
 
-ggsave("assets/blog-strangle-returns-distribution.png", width = 8, height = 4)
+ggsave("apps/contango-strategy/assets/blog-strangle-returns-distribution.png", width = 8, height = 4)
 ```
 
 
@@ -194,7 +192,7 @@ delta_tbl |>
     # theme(legend.position = "none")
     nedhmn_theme()
 
-ggsave("assets/blog-strangle-deltas-distribution.png", width = 8, height = 4)
+ggsave("apps/contango-strategy/assets/blog-strangle-deltas-distribution.png", width = 8, height = 4)
 ```
 
 # EDA - Strangle Prices
@@ -236,7 +234,7 @@ base_tbl |>
     # theme(legend.position = "none")
     nedhmn_theme()
 
-ggsave("assets/blog-strangle-prices-distribution.png", width = 8, height = 4)
+ggsave("apps/contango-strategy/assets/blog-strangle-prices-distribution.png", width = 8, height = 4)
 ```
 
 # EDA - Contango
@@ -286,7 +284,7 @@ base_tbl |>
     # theme(legend.position = "none")
     nedhmn_theme()
 
-ggsave("assets/blog-contango-deciles-total.png", width = 8, height = 4)
+ggsave("apps/contango-strategy/assets/blog-contango-deciles-total.png", width = 8, height = 4)
 ```
 
 # Deciles Across Years
@@ -316,7 +314,7 @@ base_tbl |>
     # theme(legend.position = "none")
     nedhmn_theme()
 
-ggsave("assets/blog-contango-deciles-years.png", width = 8, height = 6)
+ggsave("apps/contango-strategy/assets/blog-contango-deciles-years.png", width = 8, height = 6)
 ```
 
 # Portfolios
@@ -365,7 +363,7 @@ portfolios_tbl |>
     ) +
     nedhmn_theme(show_legend = TRUE)
 
-ggsave("assets/blog-cumulative-portfolios.png", height = 4, width = 8)
+ggsave("apps/contango-strategy/assets/blog-cumulative-portfolios.png", height = 4, width = 8)
 ```
 
 # Saving data
@@ -374,7 +372,7 @@ ggsave("assets/blog-cumulative-portfolios.png", height = 4, width = 8)
 # bq_strangle_tbl |>
 #     select(-c(short_strangle_dollar_pnl, short_strangle_pct_pnl)) |>
 #     left_join(portfolios_tbl, by = "date_entry") |>
-#     write_csv("data/full-data.csv")
+#     write_csv("apps/contango-strategy/data/full-data.csv")
 ```
 
 # Summary Table
@@ -417,7 +415,7 @@ summary_tbl <- portfolios_tbl |>
     ) |>
     arrange(` `)
 
-# write_csv(summary_tbl, "data/summary-tbl.csv")
+# write_csv(summary_tbl, "apps/contango-strategy/data/summary-tbl.csv")
 
 summary_tbl |>
     rename(" " = 1) |>
