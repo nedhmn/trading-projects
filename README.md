@@ -1,3 +1,3 @@
-# trading-analysis
+# trading-projects
 
 Data analytics project on trading topics. Work in progress...
