@@ -3,9 +3,13 @@
 on:
   push:
     branches: main
+    paths:
+      - "**/*.R"
+      - "**/*.Rmd"
+      - "!renv/**"
   pull_request:
 
-name: lint-project.yml
+name: lint.yml
 
 permissions: read-all
 

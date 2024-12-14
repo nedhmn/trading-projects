@@ -1,2 +1,3 @@
 # trading-analysis
 
+Data analytics project on trading topics. Work in progress...
