@@ -48,4 +48,4 @@ nedhmn_theme <- function(show_legend = FALSE) {
 #' with nedhmn.me
 #'
 #' @export
-nedhmn_palette <- c("#14b8a6", "#A614B8", "#B8A614")
+nedhmn_palette <- c("#14b8a6", "#A614B8", "#B8A614", "#B81414")
