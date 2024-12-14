@@ -29,7 +29,7 @@ bq_tbl <- read_csv(
 
 ```{r}
 pnls_tbl <- bq_tbl |>
-    select(contains("date"), expiration, contains("strangle"), tail_put_price_entry, tail_put_price_exit) |>
+    # select(contains("date"), expiration, contains("strangle"), tail_put_price_entry, tail_put_price_exit) |>
     mutate(
         strangle_dollar_pnl = strangle_price_exit - strangle_price_entry,
         short_strangle_dollar_pnl = strangle_dollar_pnl * -1,
@@ -38,21 +38,65 @@ pnls_tbl <- bq_tbl |>
     )
 
 # pnls_tbl
-
-# bq_tbl |>
-#     mutate(
-#         strangle_dollar_pnl = strangle_price_exit - strangle_price_entry,
-#         short_strangle_dollar_pnl = strangle_dollar_pnl * -1,
-#         tail_put_dollar_pnl = tail_put_price_exit - tail_put_price_entry,
-#         position_dollar_pnl = short_strangle_dollar_pnl + tail_put_dollar_pnl
-#     ) |>
-#     write_csv("apps/spy-strangles-with-put-hedge/data/pnls-tbl.csv")
 ```
 
-# EDA - Checking that the long put is hedging correctly
+# EDA - Checking that the long put makes sense
 
 ```{r}
-# TODO
+tail_put_tbl <- pnls_tbl |>
+    mutate(tail_put_strike = as.numeric(substr(tail_put_id, nchar(tail_put_id) - 7, nchar(tail_put_id))) / 1000)
+
+# When stock exit prices goes lower than put strike, all
+# tail_put_dollar_pnl is $gt 0
+tail_put_tbl |>
+    filter(tail_put_strike > stock_price_exit) |>
+    select(tail_put_dollar_pnl) |>
+    summary()
+
+#  tail_put_dollar_pnl
+#  Min.   : 0.3300
+#  1st Qu.: 0.7775
+#  Median : 2.7250
+#  Mean   : 5.9331
+#  3rd Qu.:10.1762
+#  Max.   :17.5400
+
+# There's only been 8 instances since 2019 when the
+# stock_price_exit passed the put strike
+tail_put_tbl |>
+    count(tail_put_strike > stock_price_exit)
+
+# The tail put hedge has only made money 11 times.
+tail_put_tbl |>
+    count(tail_put_dollar_pnl > 0)
+
+# The 3 times that tail put hedge pnl was positive
+# that wasn't when the underlying was $lte to the put's strike
+# is when it was very close to it. cont...
+tail_put_tbl |>
+    filter(tail_put_strike <= stock_price_exit &
+        tail_put_dollar_pnl >= 0) |>
+    View()
+
+# ... for example, the mean percentage of the difference
+# between the put's strike and the stock's exit price with the
+# put's strike is ~0.0008.
+tail_put_tbl |>
+    filter(tail_put_strike <= stock_price_exit &
+        tail_put_dollar_pnl >= 0) |>
+    mutate(diff = stock_price_exit - tail_put_strike) |>
+    select(tail_put_dollar_pnl, diff, tail_put_strike) |>
+    mutate(pct_diff = diff / tail_put_strike) |>
+    summary()
+
+## --= Output ---
+# tail_put_dollar_pnl      diff       tail_put_strike    pct_diff
+#  Min.   :0.1200      Min.   :0.240   Min.   :385.0   Min.   :0.0006234
+#  1st Qu.:0.3250      1st Qu.:0.330   1st Qu.:450.0   1st Qu.:0.0007195
+#  Median :0.5300      Median :0.420   Median :515.0   Median :0.0008155
+#  Mean   :0.4550      Mean   :0.390   Mean   :473.3   Mean   :0.0008066
+#  3rd Qu.:0.6225      3rd Qu.:0.465   3rd Qu.:517.5   3rd Qu.:0.0008982
+#  Max.   :0.7150      Max.   :0.510   Max.   :520.0   Max.   :0.0009808
 ```
 
 # EDA - Short Strangles Delta
@@ -64,7 +108,44 @@ pnls_tbl <- bq_tbl |>
 # EDA - Tail Put Delta
 
 ```{r}
-# TODO
+put_delta_summaries <- pnls_tbl |>
+    select(date_entry, tail_put_delta_entry) |>
+    mutate(tail_put_delta_entry = abs(tail_put_delta_entry)) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med_delta = median(tail_put_delta_entry),
+        mean_delta = mean(tail_put_delta_entry),
+        min_delta = min(tail_put_delta_entry),
+        max_delta = max(tail_put_delta_entry),
+        sd_delta = sd(tail_put_delta_entry),
+        n = n()
+    ) |>
+    mutate(across(contains("delta"), function(x) round(x, 3)))
+
+pnls_tbl |>
+    select(date_entry, tail_put_delta_entry) |>
+    ggplot(aes(abs(tail_put_delta_entry), fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme() +
+    labs(
+        title = "Absolute Tail Put Entry Deltas",
+        subtitle = sprintf(
+            "SPY 7dte put deltas from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            put_delta_summaries$min_date,
+            put_delta_summaries$max_date,
+            put_delta_summaries$n,
+            put_delta_summaries$mean_delta,
+            put_delta_summaries$min_delta,
+            put_delta_summaries$max_delta,
+            put_delta_summaries$sd_delta
+        ),
+        x = "Absolute Deltas",
+        y = "Frequency"
+    )
+
+# ggsave("apps/spy-strangles-with-put-hedge/assets/tail-put-delta-distribution.png", height = 4, width = 8)
 ```
 
 
