@@ -1,5 +1,5 @@
 ---
-title: src\projects\contango-strategy\contango-strategy.Rmd
+title: apps\contango-strategy\main.Rmd
 date: 2024-12-01
 description: Contango as an indicator for short strangles on SPY
 ---
