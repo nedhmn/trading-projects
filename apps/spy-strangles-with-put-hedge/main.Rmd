@@ -44,7 +44,7 @@ pnls_tbl
 
 ```{r}
 pnls_tbl |>
-    ggplot(aes(short_strangle_dollar_pnl, fill = "name")) +
+    ggplot(aes(short_strangle_dollar_pnl * 100, fill = "name")) +
     geom_histogram(bins = 100) +
     scale_fill_manual(
         values = nedhmn_palette
@@ -64,6 +64,32 @@ pnls_tbl |>
     )
 
 # ggsave("apps/spy-strangles-with-put-hedge/assets/short-strangles-distribution.png", height = 4, width = 8)
+```
+
+# EDA - Long Tail Put
+
+```{r}
+pnls_tbl |>
+    ggplot(aes(tail_put_dollar_pnl * 100, fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_fill_manual(
+        values = nedhmn_palette
+    ) +
+    scale_x_continuous(labels = scales::dollar) +
+    nedhmn_theme() +
+    labs(
+        title = "Long Tail Put Dollar PnL",
+        # TODO - add descriptive statisitics here
+        subtitle = sprintf(
+            "long 2delta 6dte puts from %s to %s",
+            min(pnls_tbl$date_entry),
+            max(pnls_tbl$date_entry)
+        ),
+        x = "Long Tail Put PnL",
+        y = "Frequency"
+    )
+
+# ggsave("apps/spy-strangles-with-put-hedge/assets/long-tail-put-pnl-distribution.png", height = 4, width = 8)
 ```
 
 # Calculate cumulative pnls
