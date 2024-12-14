@@ -49,6 +49,25 @@ pnls_tbl <- bq_tbl |>
 #     write_csv("apps/spy-strangles-with-put-hedge/data/pnls-tbl.csv")
 ```
 
+# EDA - Checking that the long put is hedging correctly
+
+```{r}
+# TODO
+```
+
+# EDA - Short Strangles Delta
+
+```{r}
+# TODO
+```
+
+# EDA - Tail Put Delta
+
+```{r}
+# TODO
+```
+
+
 # EDA - Short Strangles PnL
 
 ```{r}
