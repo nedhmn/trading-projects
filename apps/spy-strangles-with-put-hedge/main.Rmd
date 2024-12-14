@@ -110,7 +110,6 @@ tail_put_tbl |>
 ```{r}
 put_delta_summaries <- pnls_tbl |>
     select(date_entry, tail_put_delta_entry) |>
-    mutate(tail_put_delta_entry = abs(tail_put_delta_entry)) |>
     reframe(
         min_date = min(date_entry),
         max_date = max(date_entry),
@@ -125,12 +124,12 @@ put_delta_summaries <- pnls_tbl |>
 
 pnls_tbl |>
     select(date_entry, tail_put_delta_entry) |>
-    ggplot(aes(abs(tail_put_delta_entry), fill = "name")) +
+    ggplot(aes(tail_put_delta_entry, fill = "name")) +
     geom_histogram(bins = 100) +
     scale_fill_manual(values = nedhmn_palette) +
     nedhmn_theme() +
     labs(
-        title = "Absolute Tail Put Entry Deltas",
+        title = "Tail Put Deltas at Entry",
         subtitle = sprintf(
             "SPY 7dte put deltas from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
             put_delta_summaries$min_date,
@@ -141,7 +140,7 @@ pnls_tbl |>
             put_delta_summaries$max_delta,
             put_delta_summaries$sd_delta
         ),
-        x = "Absolute Deltas",
+        x = "Delta",
         y = "Frequency"
     )
 
