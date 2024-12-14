@@ -148,7 +148,6 @@ pnls_tbl |>
 # ggsave("apps/spy-strangles-with-put-hedge/assets/tail-put-delta-distribution.png", height = 4, width = 8)
 ```
 
-
 # EDA - Short Strangles PnL
 
 ```{r}
@@ -178,6 +177,21 @@ pnls_tbl |>
 # EDA - Long Tail Put PnL
 
 ```{r}
+tail_put_summaries <- pnls_tbl |>
+    select(date_entry, tail_put_dollar_pnl) |>
+    mutate(tail_put_dollar_pnl = tail_put_dollar_pnl * 100) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(tail_put_dollar_pnl),
+        mean = mean(tail_put_dollar_pnl),
+        min = min(tail_put_dollar_pnl),
+        max = max(tail_put_dollar_pnl),
+        sd = round(sd(tail_put_dollar_pnl), 2),
+        n = n()
+    ) |>
+    mutate(across(med:max, function(x) scales::dollar(x)))
+
 pnls_tbl |>
     ggplot(aes(tail_put_dollar_pnl * 100, fill = "name")) +
     geom_histogram(bins = 100) +
@@ -187,14 +201,18 @@ pnls_tbl |>
     scale_x_continuous(labels = scales::dollar) +
     nedhmn_theme() +
     labs(
-        title = "Long Tail Put Dollar PnL",
-        # TODO - add descriptive statisitics here
+        title = "Long SPY Tail Put Dollar PnL",
         subtitle = sprintf(
-            "Long 2delta 6dte puts from %s to %s",
-            min(pnls_tbl$date_entry),
-            max(pnls_tbl$date_entry)
+            "7dte 2delta puts from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            tail_put_summaries$min_date,
+            tail_put_summaries$max_date,
+            tail_put_summaries$n,
+            tail_put_summaries$mean,
+            tail_put_summaries$min,
+            tail_put_summaries$max,
+            tail_put_summaries$sd
         ),
-        x = "Long Tail Put PnL",
+        x = "",
         y = "Frequency"
     )
 
@@ -204,6 +222,21 @@ pnls_tbl |>
 # EDA - Put Percent Of Short Strangles
 
 ```{r}
+pct_of_strangle_summaries <- pnls_tbl |>
+    select(date_entry, strangle_price_entry, tail_put_price_entry) |>
+    mutate(put_pct_of_strangles = abs(tail_put_price_entry) / abs(strangle_price_entry)) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(put_pct_of_strangles),
+        mean = mean(put_pct_of_strangles),
+        min = min(put_pct_of_strangles),
+        max = max(put_pct_of_strangles),
+        sd = round(sd(put_pct_of_strangles), 2),
+        n = n()
+    ) |>
+    mutate(across(med:max, function(x) scales::percent(x)))
+
 pnls_tbl |>
     select(date_entry, strangle_price_entry, tail_put_price_entry) |>
     mutate(put_pct_of_strangles = abs(tail_put_price_entry) / abs(strangle_price_entry)) |>
@@ -214,7 +247,14 @@ pnls_tbl |>
     nedhmn_theme() +
     labs(
         title = "Put Entry Price Percentage of Strangle Entry Price",
-        # TODO - Subtitle
+        subtitle = sprintf(
+            "(n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            pct_of_strangle_summaries$n,
+            pct_of_strangle_summaries$mean,
+            pct_of_strangle_summaries$min,
+            pct_of_strangle_summaries$max,
+            pct_of_strangle_summaries$sd
+        ),
         x = "Put Entry Price Percentage of Strangle Entry Price",
         y = "Frequency",
         caption = str_wrap(
@@ -246,15 +286,15 @@ pnls_tbl |>
         n = n()
     )
 
-# TODO - Make clearer or discard
-pnls_tbl |>
-    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
-    pivot_longer(contains("pnl")) |>
-    ggplot(aes(x = value, fill = name, alpha = 0.2)) +
-    geom_density() +
-    scale_x_continuous(labels = scales::dollar) +
-    scale_fill_manual(values = nedhmn_palette[c(1, 3)]) +
-    nedhmn_theme()
+# # TODO - Make clearer or discard
+# pnls_tbl |>
+#     select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+#     pivot_longer(contains("pnl")) |>
+#     ggplot(aes(x = value, fill = name, alpha = 0.2)) +
+#     geom_density() +
+#     scale_x_continuous(labels = scales::dollar) +
+#     scale_fill_manual(values = nedhmn_palette[c(1, 3)]) +
+#     nedhmn_theme()
 ```
 
 # Calculate cumulative pnls
