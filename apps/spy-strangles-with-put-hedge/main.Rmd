@@ -140,7 +140,7 @@ pnls_tbl |>
             put_delta_summaries$max_delta,
             put_delta_summaries$sd_delta
         ),
-        x = "Delta",
+        x = "Put Delta",
         y = "Frequency"
     )
 
