@@ -1,0 +1,90 @@
+---
+title: apps\spy-strangles-with-put-hedge\main.Rmd
+date: 2024-12-14
+description: SPY 7dte 20delta strangles with put hedge analysis
+---
+
+```{r}
+library(tidyverse)
+
+box::use(
+    packages / utils / aesthetics[nedhmn_palette, nedhmn_theme],
+)
+```
+
+# Query results from big query 
+
+```{r}
+bq_tbl <- read_csv(
+    file = "apps/spy-strangles-with-put-hedge/data/bq-strangles-data.csv",
+    show_col_types = FALSE
+)
+
+# bq_tbl |>
+#     head(15) |>
+#     View()
+```
+
+# Calculate pnl
+
+```{r}
+pnls_tbl <- bq_tbl |>
+    select(contains("date"), expiration, contains("strangle"), tail_put_price_entry, tail_put_price_exit) |>
+    mutate(
+        strangle_dollar_pnl = strangle_price_exit - strangle_price_entry,
+        short_strangle_dollar_pnl = strangle_dollar_pnl * -1,
+        tail_put_dollar_pnl = tail_put_price_exit - tail_put_price_entry,
+        position_dollar_pnl = short_strangle_dollar_pnl + tail_put_dollar_pnl
+    )
+
+pnls_tbl
+```
+
+# Calculate cumulative pnls
+
+```{r}
+cum_pnls_tbl <- pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+    arrange(date_entry) |>
+    mutate(across(contains("pnl"), function(x) cumsum(x), .names = "cum_{.col}"))
+
+cum_pnls_tbl |>
+    pivot_longer(contains("cum")) |>
+    ggplot(aes(x = date_entry, y = value * 100, color = name)) +
+    geom_line() +
+    scale_y_continuous(
+        labels = scales::dollar
+    ) +
+    scale_color_manual(
+        # values = viridis::viridis(3)[c(1, 2)],
+        values = nedhmn_palette[c(1, 3)],
+        labels = c(
+            "cum_position_dollar_pnl" = "Hedged Short Strangle",
+            "cum_short_strangle_dollar_pnl" = "Short Strangle"
+        )
+    ) +
+    nedhmn_theme(show_legend = TRUE) +
+    labs(
+        title = "Short Strangle PnL With and Without Tail Put Hedge",
+        subtitle = sprintf("SPY data from %s to %s", min(cum_pnls_tbl$date_entry), max(cum_pnls_tbl$date_entry)),
+        x = "",
+        y = "Cumulative PnL",
+        color = "Legend",
+        caption = str_wrap(
+            "Short strangles are 20-delta, 7-dte, SPY strangles. Hedged short strangles adds a long 2-delta put. Each leg is 1 lot.",
+            width = 100
+        )
+    )
+
+# ggsave("apps/spy-strangles-with-put-hedge/assets/short-strangles-comparison-line-chart.png", height = 4, width = 8)
+```
+
+```{r}
+pnls_tbl |>
+    ggplot(aes(tail_put_pct_pnl, fill = "name")) +
+    geom_histogram(bins = 100)
+
+pnls_tbl |>
+    select(contains("tail_put")) |>
+    summary()
+```
