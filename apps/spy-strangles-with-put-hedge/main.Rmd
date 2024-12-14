@@ -37,7 +37,16 @@ pnls_tbl <- bq_tbl |>
         position_dollar_pnl = short_strangle_dollar_pnl + tail_put_dollar_pnl
     )
 
-pnls_tbl
+# pnls_tbl
+
+# bq_tbl |>
+#     mutate(
+#         strangle_dollar_pnl = strangle_price_exit - strangle_price_entry,
+#         short_strangle_dollar_pnl = strangle_dollar_pnl * -1,
+#         tail_put_dollar_pnl = tail_put_price_exit - tail_put_price_entry,
+#         position_dollar_pnl = short_strangle_dollar_pnl + tail_put_dollar_pnl
+#     ) |>
+#     write_csv("apps/spy-strangles-with-put-hedge/data/pnls-tbl.csv")
 ```
 
 # EDA - Short Strangles PnL
@@ -116,6 +125,38 @@ pnls_tbl |>
 # ggsave("apps/spy-strangles-with-put-hedge/assets/put-percentage-of-strangles-distribution.png", height = 4, width = 8)
 ```
 
+# EDA - Summary statistics
+
+```{r}
+# TODO - Turn to gt table
+pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+    pivot_longer(contains("pnl")) |>
+    group_by(name) |>
+    # mutate(value = value * 100) |>
+    reframe(
+        sum = sum(value),
+        min = min(value),
+        q1 = quantile(value, 0.25)[1],
+        med = median(value),
+        mean = mean(value),
+        q3 = quantile(value, 0.75)[1],
+        max = max(value),
+        stddev = sd(value),
+        n = n()
+    )
+
+# TODO - Make clearer or discard
+pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+    pivot_longer(contains("pnl")) |>
+    ggplot(aes(x = value, fill = name, alpha = 0.2)) +
+    geom_density() +
+    scale_x_continuous(labels = scales::dollar) +
+    scale_fill_manual(values = nedhmn_palette[c(1, 3)]) +
+    nedhmn_theme()
+```
+
 # Calculate cumulative pnls
 
 ```{r}
@@ -155,12 +196,3 @@ cum_pnls_tbl |>
 # ggsave("apps/spy-strangles-with-put-hedge/assets/short-strangles-comparison-line-chart.png", height = 4, width = 8)
 ```
 
-```{r}
-pnls_tbl |>
-    ggplot(aes(tail_put_pct_pnl, fill = "name")) +
-    geom_histogram(bins = 100)
-
-pnls_tbl |>
-    select(contains("tail_put")) |>
-    summary()
-```
