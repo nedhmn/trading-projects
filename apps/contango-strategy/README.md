@@ -889,7 +889,7 @@ short_strangle_returns_plot +
     theme(legend.position = "none")
 ```
 
-![](dist/images/unnamed-chunk-5-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
 
 ### Strangle Deltas
 
@@ -931,7 +931,7 @@ strangle_deltas_plot +
     theme(legend.position = "none")
 ```
 
-![](dist/images/unnamed-chunk-7-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
 
 ### Strangle Prices
 
@@ -971,7 +971,7 @@ strangle_prices_plot +
     theme(legend.position = "none")
 ```
 
-![](dist/images/unnamed-chunk-9-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 ### Contango
 
@@ -1019,7 +1019,7 @@ deciles_total_plot +
     theme(legend.position = "none")
 ```
 
-![](dist/images/unnamed-chunk-11-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 ### Across Years
 
@@ -1047,7 +1047,7 @@ deciles_years_plot +
     theme(legend.position = "none")
 ```
 
-![](dist/images/unnamed-chunk-13-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
 
 ## Strategy Comparisons
 
@@ -1098,7 +1098,7 @@ portfolios_plot +
     )
 ```
 
-![](dist/images/unnamed-chunk-15-1.png)<!-- -->
+<img src="dist/images/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
 ### Summary Table
 
