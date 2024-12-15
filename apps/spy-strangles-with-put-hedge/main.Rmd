@@ -301,7 +301,7 @@ short_strangle_pnl_summaries <- pnls_tbl |>
         sd = sd(short_strangle_dollar_pnl),
         n = n()
     ) |>
-    mutate(across(min:max, function(x) scales::dollar(x)))
+    mutate(across(min:sd, function(x) scales::dollar(x)))
 
 short_strangle_pnl_plot <- pnls_tbl |>
     ggplot(aes(short_strangle_dollar_pnl * 100, fill = "name")) +
@@ -357,7 +357,7 @@ tail_put_summaries <- pnls_tbl |>
         sd = round(sd(tail_put_dollar_pnl), 2),
         n = n()
     ) |>
-    mutate(across(med:max, function(x) scales::dollar(x)))
+    mutate(across(med:sd, function(x) scales::dollar(x)))
 
 tail_put_pnl_plot <- pnls_tbl |>
     ggplot(aes(tail_put_dollar_pnl * 100, fill = "name")) +
@@ -457,26 +457,6 @@ ggsave(
 ```
 
 ## Comparison Analysis
-
-### Summary Statistics
-
-```{r}
-pnls_tbl |>
-    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
-    pivot_longer(contains("pnl")) |>
-    group_by(name) |>
-    reframe(
-        sum = sum(value),
-        min = min(value),
-        q1 = quantile(value, 0.25)[1],
-        med = median(value),
-        mean = mean(value),
-        q3 = quantile(value, 0.75)[1],
-        max = max(value),
-        stddev = sd(value),
-        n = n()
-    )
-```
 
 ### Hedged Short Strangle vs Short Strangle 
 
