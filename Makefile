@@ -6,7 +6,7 @@ CURRENT_DIR := $(PWD)
 
 # Build target
 build:
-	R --quiet -e "rmarkdown::render('apps/$(filename)/main.Rmd', output_file = 'README.md', knit_root_dir = '$(CURRENT_DIR)')"
+	R --quiet -e "rmarkdown::render('apps/$(app)/main.Rmd', output_file = 'README.md', knit_root_dir = '$(CURRENT_DIR)')"
 
 # Renv commands
 renv-snapshot:
