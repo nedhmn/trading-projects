@@ -12,6 +12,8 @@ Ned H
   - [Tail Put Validation](#tail-put-validation)
   - [Short Strangles Delta](#short-strangles-delta)
   - [Tail Puts Delta](#tail-puts-delta)
+  - [Tail Put Entry Prices](#tail-put-entry-prices)
+  - [Strangle Entry Prices](#strangle-entry-prices)
   - [Short Strangle PnL](#short-strangle-pnl)
   - [Long Tail Put PnL](#long-tail-put-pnl)
   - [Put Percent Of Short Strangles](#put-percent-of-short-strangles)
@@ -19,6 +21,7 @@ Ned H
   - [Summary Statistics](#summary-statistics)
   - [Hedged Short Strangle vs Short
     Strangle](#hedged-short-strangle-vs-short-strangle)
+  - [Summary Table](#summary-table)
 - [Hedged Short Strangle Strategy](#hedged-short-strangle-strategy)
   - [Circle Trades When Tail Put Made
     Money](#circle-trades-when-tail-put-made-money)
@@ -232,6 +235,96 @@ tail_put_deltas_plot +
 
 <img src="dist/images/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
+### Tail Put Entry Prices
+
+``` r
+put_price_summaries <- pnls_tbl |>
+    select(date_entry, tail_put_price_entry) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(tail_put_price_entry),
+        mean = mean(tail_put_price_entry),
+        min = min(tail_put_price_entry),
+        max = max(tail_put_price_entry),
+        sd = sd(tail_put_price_entry),
+        n = n()
+    ) |>
+    mutate(across(med:sd, function(x) scales::dollar(round(x, 3))))
+
+put_prices_plot <- pnls_tbl |>
+    select(date_entry, tail_put_price_entry) |>
+    ggplot(aes(tail_put_price_entry, fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_x_continuous(labels = scales::dollar) +
+    labs(
+        title = "Tail Put Prices at Entry",
+        subtitle = sprintf(
+            "SPY 7dte put prices from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            put_price_summaries$min_date,
+            put_price_summaries$max_date,
+            put_price_summaries$n,
+            put_price_summaries$mean,
+            put_price_summaries$min,
+            put_price_summaries$max,
+            put_price_summaries$sd
+        ),
+        x = "Option Price",
+        y = "Frequency"
+    )
+
+put_prices_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
+```
+
+<img src="dist/images/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+
+### Strangle Entry Prices
+
+``` r
+strangle_price_summaries <- pnls_tbl |>
+    select(date_entry, strangle_price_entry) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(strangle_price_entry),
+        mean = mean(strangle_price_entry),
+        min = min(strangle_price_entry),
+        max = max(strangle_price_entry),
+        sd = sd(strangle_price_entry),
+        n = n()
+    ) |>
+    mutate(across(med:sd, function(x) scales::dollar(round(x, 3))))
+
+strangle_prices_plot <- pnls_tbl |>
+    select(date_entry, strangle_price_entry) |>
+    ggplot(aes(strangle_price_entry, fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_x_continuous(labels = scales::dollar) +
+    labs(
+        title = "Strangle Prices at Entry",
+        subtitle = sprintf(
+            "SPY 7dte strangle prices from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            strangle_price_summaries$min_date,
+            strangle_price_summaries$max_date,
+            strangle_price_summaries$n,
+            strangle_price_summaries$mean,
+            strangle_price_summaries$min,
+            strangle_price_summaries$max,
+            strangle_price_summaries$sd
+        ),
+        x = "Option Price",
+        y = "Frequency"
+    )
+
+strangle_prices_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
+```
+
+<img src="dist/images/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+
 ### Short Strangle PnL
 
 ``` r
@@ -273,7 +366,7 @@ short_strangle_pnl_plot +
     theme(legend.position = "none")
 ```
 
-<img src="dist/images/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
 
 ### Long Tail Put PnL
 
@@ -318,7 +411,7 @@ tail_put_pnl_plot +
     theme(legend.position = "none")
 ```
 
-<img src="dist/images/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
 
 ### Put Percent Of Short Strangles
 
@@ -366,7 +459,7 @@ pct_of_strangle_plot +
     theme(legend.position = "none")
 ```
 
-<img src="dist/images/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
 
 ## Comparison Analysis
 
@@ -436,7 +529,37 @@ cum_pnls_plot +
     )
 ```
 
-<img src="dist/images/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-24-1.png" style="display: block; margin: auto;" />
+
+### Summary Table
+
+``` r
+pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+    pivot_longer(contains("pnl"), names_to = "strategy") |>
+    mutate(value = value * 100) |>
+    group_by(strategy) |>
+    reframe(
+        total = sum(value),
+        min_pnl = min(value),
+        mean_pnl = mean(value),
+        sd = sd(value),
+        n = n()
+    ) |>
+    mutate(
+        strategy = ifelse(strategy == "position_dollar_pnl", "Hedged Short Strangle", "Short Strangle"),
+        across(total:sd, function(x) scales::dollar(round(x, 2)))
+    )
+```
+
+<div class="kable-table">
+
+| strategy              | total    | min_pnl  | mean_pnl | sd       |    n |
+|:----------------------|:---------|:---------|:---------|:---------|-----:|
+| Hedged Short Strangle | \$5,815  | -\$1,991 | \$5.44   | \$333.54 | 1069 |
+| Short Strangle        | \$18,024 | -\$3,580 | \$16.86  | \$359.10 | 1069 |
+
+</div>
 
 ## Hedged Short Strangle Strategy
 
@@ -474,4 +597,4 @@ circled_hedged_plot +
     theme(legend.position = "none")
 ```
 
-<img src="dist/images/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-27-1.png" style="display: block; margin: auto;" />

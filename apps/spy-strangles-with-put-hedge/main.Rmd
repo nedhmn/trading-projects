@@ -175,6 +175,118 @@ ggsave(
 )
 ```
 
+### Tail Put Entry Prices
+
+```{r}
+put_price_summaries <- pnls_tbl |>
+    select(date_entry, tail_put_price_entry) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(tail_put_price_entry),
+        mean = mean(tail_put_price_entry),
+        min = min(tail_put_price_entry),
+        max = max(tail_put_price_entry),
+        sd = sd(tail_put_price_entry),
+        n = n()
+    ) |>
+    mutate(across(med:sd, function(x) scales::dollar(round(x, 3))))
+
+put_prices_plot <- pnls_tbl |>
+    select(date_entry, tail_put_price_entry) |>
+    ggplot(aes(tail_put_price_entry, fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_x_continuous(labels = scales::dollar) +
+    labs(
+        title = "Tail Put Prices at Entry",
+        subtitle = sprintf(
+            "SPY 7dte put prices from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            put_price_summaries$min_date,
+            put_price_summaries$max_date,
+            put_price_summaries$n,
+            put_price_summaries$mean,
+            put_price_summaries$min,
+            put_price_summaries$max,
+            put_price_summaries$sd
+        ),
+        x = "Option Price",
+        y = "Frequency"
+    )
+
+put_prices_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
+```
+
+```{r include=FALSE}
+styled_put_prices_plot <- put_prices_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/put_prices_distribution.png",
+    plot = styled_put_prices_plot,
+    height = 4,
+    width = 8
+)
+```
+
+### Strangle Entry Prices
+
+```{r}
+strangle_price_summaries <- pnls_tbl |>
+    select(date_entry, strangle_price_entry) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        med = median(strangle_price_entry),
+        mean = mean(strangle_price_entry),
+        min = min(strangle_price_entry),
+        max = max(strangle_price_entry),
+        sd = sd(strangle_price_entry),
+        n = n()
+    ) |>
+    mutate(across(med:sd, function(x) scales::dollar(round(x, 3))))
+
+strangle_prices_plot <- pnls_tbl |>
+    select(date_entry, strangle_price_entry) |>
+    ggplot(aes(strangle_price_entry, fill = "name")) +
+    geom_histogram(bins = 100) +
+    scale_x_continuous(labels = scales::dollar) +
+    labs(
+        title = "Strangle Prices at Entry",
+        subtitle = sprintf(
+            "SPY 7dte strangle prices from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            strangle_price_summaries$min_date,
+            strangle_price_summaries$max_date,
+            strangle_price_summaries$n,
+            strangle_price_summaries$mean,
+            strangle_price_summaries$min,
+            strangle_price_summaries$max,
+            strangle_price_summaries$sd
+        ),
+        x = "Option Price",
+        y = "Frequency"
+    )
+
+strangle_prices_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
+```
+
+```{r include=FALSE}
+styled_strangle_prices_plot <- strangle_prices_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/strangle_prices_distribution.png",
+    plot = styled_strangle_prices_plot,
+    height = 4,
+    width = 8
+)
+```
+
 ### Short Strangle PnL
 
 ```{r}
@@ -420,6 +532,27 @@ ggsave(
     height = 4,
     width = 8
 )
+```
+
+### Summary Table
+
+```{r}
+pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
+    pivot_longer(contains("pnl"), names_to = "strategy") |>
+    mutate(value = value * 100) |>
+    group_by(strategy) |>
+    reframe(
+        total = sum(value),
+        min_pnl = min(value),
+        mean_pnl = mean(value),
+        sd = sd(value),
+        n = n()
+    ) |>
+    mutate(
+        strategy = ifelse(strategy == "position_dollar_pnl", "Hedged Short Strangle", "Short Strangle"),
+        across(total:sd, function(x) scales::dollar(round(x, 2)))
+    )
 ```
 
 ## Hedged Short Strangle Strategy 
