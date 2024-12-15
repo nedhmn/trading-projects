@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
     echo = TRUE,
     warning = FALSE,
     message = FALSE,
-    fig.height = 4,
+    fig.height = 6,
     fig.width = 12,
     fig.align = "center",
     fig.path = "dist/images/"
@@ -313,7 +313,7 @@ ggsave(
 
 ### Across Years
 
-```{r, fig.height=6, fig.width=8}
+```{r, fig.height=8}
 deciles_years_plot <- base_tbl |>
     mutate(year = year(date_entry)) |>
     group_by(year) |>
