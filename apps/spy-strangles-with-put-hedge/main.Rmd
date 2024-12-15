@@ -218,7 +218,7 @@ put_prices_plot +
     theme(legend.position = "none")
 ```
 
-```{r include=FALSE}
+```{r include=FALSE, eval=FALSE}
 styled_put_prices_plot <- put_prices_plot +
     scale_fill_manual(values = nedhmn_palette) +
     nedhmn_theme()
@@ -274,7 +274,7 @@ strangle_prices_plot +
     theme(legend.position = "none")
 ```
 
-```{r include=FALSE}
+```{r include=FALSE, eval=FALSE}
 styled_strangle_prices_plot <- strangle_prices_plot +
     scale_fill_manual(values = nedhmn_palette) +
     nedhmn_theme()
