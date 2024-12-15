@@ -18,7 +18,6 @@ Ned H
   - [Long Tail Put PnL](#long-tail-put-pnl)
   - [Put Percent Of Short Strangles](#put-percent-of-short-strangles)
 - [Comparison Analysis](#comparison-analysis)
-  - [Summary Statistics](#summary-statistics)
   - [Hedged Short Strangle vs Short
     Strangle](#hedged-short-strangle-vs-short-strangle)
   - [Summary Table](#summary-table)
@@ -339,7 +338,7 @@ short_strangle_pnl_summaries <- pnls_tbl |>
         sd = sd(short_strangle_dollar_pnl),
         n = n()
     ) |>
-    mutate(across(min:max, function(x) scales::dollar(x)))
+    mutate(across(min:sd, function(x) scales::dollar(x)))
 
 short_strangle_pnl_plot <- pnls_tbl |>
     ggplot(aes(short_strangle_dollar_pnl * 100, fill = "name")) +
@@ -384,7 +383,7 @@ tail_put_summaries <- pnls_tbl |>
         sd = round(sd(tail_put_dollar_pnl), 2),
         n = n()
     ) |>
-    mutate(across(med:max, function(x) scales::dollar(x)))
+    mutate(across(med:sd, function(x) scales::dollar(x)))
 
 tail_put_pnl_plot <- pnls_tbl |>
     ggplot(aes(tail_put_dollar_pnl * 100, fill = "name")) +
@@ -463,35 +462,6 @@ pct_of_strangle_plot +
 
 ## Comparison Analysis
 
-### Summary Statistics
-
-``` r
-pnls_tbl |>
-    select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
-    pivot_longer(contains("pnl")) |>
-    group_by(name) |>
-    reframe(
-        sum = sum(value),
-        min = min(value),
-        q1 = quantile(value, 0.25)[1],
-        med = median(value),
-        mean = mean(value),
-        q3 = quantile(value, 0.75)[1],
-        max = max(value),
-        stddev = sd(value),
-        n = n()
-    )
-```
-
-<div class="kable-table">
-
-| name | sum | min | q1 | med | mean | q3 | max | stddev | n |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| position_dollar_pnl | 58.15 | -19.91 | -0.470 | 1.24 | 0.0543966 | 1.845 | 6.87 | 3.335367 | 1069 |
-| short_strangle_dollar_pnl | 180.24 | -35.80 | -0.295 | 1.36 | 0.1686062 | 2.010 | 7.49 | 3.590978 | 1069 |
-
-</div>
-
 ### Hedged Short Strangle vs Short Strangle
 
 ``` r
@@ -529,7 +499,7 @@ cum_pnls_plot +
     )
 ```
 
-<img src="dist/images/unnamed-chunk-24-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
 
 ### Summary Table
 
@@ -597,4 +567,4 @@ circled_hedged_plot +
     theme(legend.position = "none")
 ```
 
-<img src="dist/images/unnamed-chunk-27-1.png" style="display: block; margin: auto;" />
+<img src="dist/images/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
