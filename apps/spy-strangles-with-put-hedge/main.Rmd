@@ -1,18 +1,40 @@
 ---
-title: apps\spy-strangles-with-put-hedge\main.Rmd
-date: 2024-12-14
-description: SPY 7dte 20delta strangles with put hedge analysis
+title: Using 2Delta Puts to Hedge Short Strangles
+description: Analyzing how long 2delta puts would impact short strangle returns on SPY
+author: Ned H
+date: 2024-12-15
+output:
+  github_document:
+    toc: true
+    toc_depth: 3
+    html_preview: false
+    df_print: kable
+file_path: apps\spy-strangles-with-put-hedge\main.Rmd
 ---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(
+    echo = TRUE,
+    warning = FALSE,
+    message = FALSE,
+    fig.height = 6,
+    fig.width = 12,
+    fig.align = "center",
+    fig.path = "dist/images/"
+)
+```
+
+## Setup
+
+### Dependencies
 
 ```{r}
 library(tidyverse)
 
-box::use(
-    packages / utils / aesthetics[nedhmn_palette, nedhmn_theme],
-)
+source("packages/utils/aesthetics.R")
 ```
 
-# Query results from big query 
+### Query base strangle data from big query
 
 ```{r}
 bq_tbl <- read_csv(
@@ -20,16 +42,14 @@ bq_tbl <- read_csv(
     show_col_types = FALSE
 )
 
-# bq_tbl |>
-#     head(15) |>
-#     View()
+bq_tbl |>
+    head(3)
 ```
 
-# Calculate pnl
+### Calculate PnLs
 
 ```{r}
 pnls_tbl <- bq_tbl |>
-    # select(contains("date"), expiration, contains("strangle"), tail_put_price_entry, tail_put_price_exit) |>
     mutate(
         strangle_dollar_pnl = strangle_price_exit - strangle_price_entry,
         short_strangle_dollar_pnl = strangle_dollar_pnl * -1,
@@ -37,50 +57,56 @@ pnls_tbl <- bq_tbl |>
         position_dollar_pnl = short_strangle_dollar_pnl + tail_put_dollar_pnl
     )
 
-# pnls_tbl
+pnls_tbl |>
+    head(3)
 ```
 
-# EDA - Checking that the long put makes sense
+## Exploratory Data Analysis
+
+### Tail Put Validation
+
+Series of tests to confirm that the tail put makes sense.
 
 ```{r}
+# Extracting the strike from the option's id
 tail_put_tbl <- pnls_tbl |>
     mutate(tail_put_strike = as.numeric(substr(tail_put_id, nchar(tail_put_id) - 7, nchar(tail_put_id))) / 1000)
+```
 
-# When stock exit prices goes lower than put strike, all
-# tail_put_dollar_pnl is $gt 0
+When stock exit prices goes lower than put strike, all tail_put_dollar_pnl is greater than 0.
+
+```{r}
 tail_put_tbl |>
     filter(tail_put_strike > stock_price_exit) |>
     select(tail_put_dollar_pnl) |>
     summary()
+```
 
-#  tail_put_dollar_pnl
-#  Min.   : 0.3300
-#  1st Qu.: 0.7775
-#  Median : 2.7250
-#  Mean   : 5.9331
-#  3rd Qu.:10.1762
-#  Max.   :17.5400
+There's only been 8 instances since 2019 when the stock_price_exit passed the put strike.
 
-# There's only been 8 instances since 2019 when the
-# stock_price_exit passed the put strike
+```{r}
 tail_put_tbl |>
     count(tail_put_strike > stock_price_exit)
+```
 
-# The tail put hedge has only made money 11 times.
+The tail put hedge has only made money 11 times.
+
+```{r}
 tail_put_tbl |>
     count(tail_put_dollar_pnl > 0)
+```
 
-# The 3 times that tail put hedge pnl was positive
-# that wasn't when the underlying was $lte to the put's strike
-# is when it was very close to it. cont...
+The 3 times that tail put hedge pnl was positive that wasn't when the underlying was less than or equal to the put's strike is when it was very close to it.
+
+```{r}
 tail_put_tbl |>
     filter(tail_put_strike <= stock_price_exit &
-        tail_put_dollar_pnl >= 0) |>
-    View()
+        tail_put_dollar_pnl >= 0)
+```
 
-# ... for example, the mean percentage of the difference
-# between the put's strike and the stock's exit price with the
-# put's strike is ~0.0008.
+For example, the mean percentage of the difference between the put's strike and the stock's exit price with the put's strike is ~0.0008.
+
+```{r}
 tail_put_tbl |>
     filter(tail_put_strike <= stock_price_exit &
         tail_put_dollar_pnl >= 0) |>
@@ -88,24 +114,13 @@ tail_put_tbl |>
     select(tail_put_dollar_pnl, diff, tail_put_strike) |>
     mutate(pct_diff = diff / tail_put_strike) |>
     summary()
-
-## --= Output ---
-# tail_put_dollar_pnl      diff       tail_put_strike    pct_diff
-#  Min.   :0.1200      Min.   :0.240   Min.   :385.0   Min.   :0.0006234
-#  1st Qu.:0.3250      1st Qu.:0.330   1st Qu.:450.0   1st Qu.:0.0007195
-#  Median :0.5300      Median :0.420   Median :515.0   Median :0.0008155
-#  Mean   :0.4550      Mean   :0.390   Mean   :473.3   Mean   :0.0008066
-#  3rd Qu.:0.6225      3rd Qu.:0.465   3rd Qu.:517.5   3rd Qu.:0.0008982
-#  Max.   :0.7150      Max.   :0.510   Max.   :520.0   Max.   :0.0009808
 ```
 
-# EDA - Short Strangles Delta
+### Short Strangles Delta
 
-```{r}
-# TODO
-```
+TODO
 
-# EDA - Tail Put Delta
+### Tail Puts Delta
 
 ```{r}
 put_delta_summaries <- pnls_tbl |>
@@ -122,12 +137,10 @@ put_delta_summaries <- pnls_tbl |>
     ) |>
     mutate(across(contains("delta"), function(x) round(x, 3)))
 
-pnls_tbl |>
+tail_put_deltas_plot <- pnls_tbl |>
     select(date_entry, tail_put_delta_entry) |>
     ggplot(aes(tail_put_delta_entry, fill = "name")) +
     geom_histogram(bins = 100) +
-    scale_fill_manual(values = nedhmn_palette) +
-    nedhmn_theme() +
     labs(
         title = "Tail Put Deltas at Entry",
         subtitle = sprintf(
@@ -144,36 +157,79 @@ pnls_tbl |>
         y = "Frequency"
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/tail-put-delta-distribution.png", height = 4, width = 8)
+tail_put_deltas_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
 ```
 
-# EDA - Short Strangles PnL
+```{r include=FALSE, eval=FALSE}
+styled_tail_put_deltas_plot <- tail_put_deltas_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/tail-put-delta-distribution.png",
+    plot = styled_tail_put_deltas_plot,
+    height = 4,
+    width = 8
+)
+```
+
+### Short Strangle PnL
 
 ```{r}
-pnls_tbl |>
+short_strangle_pnl_summaries <- pnls_tbl |>
+    select(date_entry, short_strangle_dollar_pnl) |>
+    reframe(
+        min_date = min(date_entry),
+        max_date = max(date_entry),
+        min = min(short_strangle_dollar_pnl),
+        mean = mean(short_strangle_dollar_pnl),
+        max = max(short_strangle_dollar_pnl),
+        sd = sd(short_strangle_dollar_pnl),
+        n = n()
+    ) |>
+    mutate(across(min:max, function(x) scales::dollar(x)))
+
+short_strangle_pnl_plot <- pnls_tbl |>
     ggplot(aes(short_strangle_dollar_pnl * 100, fill = "name")) +
     geom_histogram(bins = 100) +
-    scale_fill_manual(
-        values = nedhmn_palette
-    ) +
     scale_x_continuous(labels = scales::dollar) +
-    nedhmn_theme() +
     labs(
         title = "SPY Short Strangle Dollar PnL",
-        # TODO - add descriptive statisitics here
         subtitle = sprintf(
-            "20delta 7dte strangles from %s to %s",
-            min(pnls_tbl$date_entry),
-            max(pnls_tbl$date_entry)
+            "7DTE 20Delta Short Strangles from %s to %s (n=%s, µ=%s, min=%s, max=%s, sd=%s)",
+            short_strangle_pnl_summaries$min_date,
+            short_strangle_pnl_summaries$max_date,
+            short_strangle_pnl_summaries$n,
+            short_strangle_pnl_summaries$mean,
+            short_strangle_pnl_summaries$min,
+            short_strangle_pnl_summaries$max,
+            short_strangle_pnl_summaries$sd
         ),
-        x = "Short Dollar PnL",
+        x = "PnL",
         y = "Frequency"
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/short-strangles-distribution.png", height = 4, width = 8)
+short_strangle_pnl_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
 ```
 
-# EDA - Long Tail Put PnL
+```{r include=FALSE, eval=FALSE}
+styled_short_strangle_pnl_plot <- short_strangle_pnl_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/short-strangles-distribution.png",
+    plot = styled_short_strangle_pnl_plot,
+    height = 4,
+    width = 8
+)
+```
+
+### Long Tail Put PnL
 
 ```{r}
 tail_put_summaries <- pnls_tbl |>
@@ -191,14 +247,10 @@ tail_put_summaries <- pnls_tbl |>
     ) |>
     mutate(across(med:max, function(x) scales::dollar(x)))
 
-pnls_tbl |>
+tail_put_pnl_plot <- pnls_tbl |>
     ggplot(aes(tail_put_dollar_pnl * 100, fill = "name")) +
     geom_histogram(bins = 100) +
-    scale_fill_manual(
-        values = nedhmn_palette
-    ) +
     scale_x_continuous(labels = scales::dollar) +
-    nedhmn_theme() +
     labs(
         title = "Long SPY Tail Put Dollar PnL",
         subtitle = sprintf(
@@ -211,14 +263,29 @@ pnls_tbl |>
             tail_put_summaries$max,
             tail_put_summaries$sd
         ),
-        x = "",
+        x = "PnL",
         y = "Frequency"
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/long-tail-put-pnl-distribution.png", height = 4, width = 8)
+tail_put_pnl_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
 ```
 
-# EDA - Put Percent Of Short Strangles
+```{r include=FALSE, eval=FALSE}
+styled_tail_put_pnl_plot <- tail_put_pnl_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/long-tail-put-pnl-distribution.png",
+    plot = styled_tail_put_pnl_plot,
+    height = 4,
+    width = 8
+)
+```
+
+### Put Percent Of Short Strangles
 
 ```{r}
 pct_of_strangle_summaries <- pnls_tbl |>
@@ -236,14 +303,12 @@ pct_of_strangle_summaries <- pnls_tbl |>
     ) |>
     mutate(across(med:max, function(x) scales::percent(x)))
 
-pnls_tbl |>
+pct_of_strangle_plot <- pnls_tbl |>
     select(date_entry, strangle_price_entry, tail_put_price_entry) |>
     mutate(put_pct_of_strangles = abs(tail_put_price_entry) / abs(strangle_price_entry)) |>
     ggplot(aes(put_pct_of_strangles, fill = "name")) +
     geom_histogram(bins = 100) +
     scale_x_continuous(labels = scales::percent) +
-    scale_fill_manual(values = nedhmn_palette) +
-    nedhmn_theme() +
     labs(
         title = "Put Entry Price Percentage of Strangle Entry Price",
         subtitle = sprintf(
@@ -261,18 +326,33 @@ pnls_tbl |>
         )
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/put-percentage-of-strangles-distribution.png", height = 4, width = 8)
+pct_of_strangle_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
 ```
 
-# EDA - Summary statistics
+```{r include=FALSE, eval=FALSE}
+styled_pct_of_strangle_plot <- pct_of_strangle_plot +
+    scale_fill_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/put-percentage-of-strangles-distribution.png",
+    plot = styled_pct_of_strangle_plot,
+    height = 4,
+    width = 8
+)
+```
+
+## Comparison Analysis
+
+### Summary Statistics
 
 ```{r}
-# TODO - Turn to gt table
 pnls_tbl |>
     select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
     pivot_longer(contains("pnl")) |>
     group_by(name) |>
-    # mutate(value = value * 100) |>
     reframe(
         sum = sum(value),
         min = min(value),
@@ -284,19 +364,9 @@ pnls_tbl |>
         stddev = sd(value),
         n = n()
     )
-
-# # TODO - Make clearer or discard
-# pnls_tbl |>
-#     select(date_entry, short_strangle_dollar_pnl, position_dollar_pnl) |>
-#     pivot_longer(contains("pnl")) |>
-#     ggplot(aes(x = value, fill = name, alpha = 0.2)) +
-#     geom_density() +
-#     scale_x_continuous(labels = scales::dollar) +
-#     scale_fill_manual(values = nedhmn_palette[c(1, 3)]) +
-#     nedhmn_theme()
 ```
 
-# Calculate cumulative pnls
+### Hedged Short Strangle vs Short Strangle 
 
 ```{r}
 cum_pnls_tbl <- pnls_tbl |>
@@ -304,22 +374,13 @@ cum_pnls_tbl <- pnls_tbl |>
     arrange(date_entry) |>
     mutate(across(contains("pnl"), function(x) cumsum(x), .names = "cum_{.col}"))
 
-cum_pnls_tbl |>
+cum_pnls_plot <- cum_pnls_tbl |>
     pivot_longer(contains("cum")) |>
     ggplot(aes(x = date_entry, y = value * 100, color = name)) +
     geom_line() +
     scale_y_continuous(
         labels = scales::dollar
     ) +
-    scale_color_manual(
-        # values = viridis::viridis(3)[c(1, 2)],
-        values = nedhmn_palette[c(1, 3)],
-        labels = c(
-            "cum_position_dollar_pnl" = "Hedged Short Strangle",
-            "cum_short_strangle_dollar_pnl" = "Short Strangle"
-        )
-    ) +
-    nedhmn_theme(show_legend = TRUE) +
     labs(
         title = "Short Strangle PnL With and Without Tail Put Hedge",
         subtitle = sprintf("SPY data from %s to %s", min(cum_pnls_tbl$date_entry), max(cum_pnls_tbl$date_entry)),
@@ -332,13 +393,41 @@ cum_pnls_tbl |>
         )
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/short-strangles-comparison-line-chart.png", height = 4, width = 8)
+cum_pnls_plot +
+    scale_color_manual(
+        values = viridis::viridis(3)[c(1, 2)],
+        labels = c(
+            "cum_position_dollar_pnl" = "Hedged Short Strangle",
+            "cum_short_strangle_dollar_pnl" = "Short Strangle"
+        )
+    )
 ```
 
-# Circled hedged short strangle pnl
+```{r include=FALSE, eval=FALSE}
+styled_cum_pnls_plot <- cum_pnls_plot +
+    scale_color_manual(
+        values = nedhmn_palette[c(1, 3)],
+        labels = c(
+            "cum_position_dollar_pnl" = "Hedged Short Strangle",
+            "cum_short_strangle_dollar_pnl" = "Short Strangle"
+        )
+    ) +
+    nedhmn_theme(show_legend = TRUE)
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/short-strangles-comparison-line-chart.png",
+    plot = styled_cum_pnls_plot,
+    height = 4,
+    width = 8
+)
+```
+
+## Hedged Short Strangle Strategy 
+
+### Circle Trades When Tail Put Made Money
 
 ```{r}
-cum_pnls_tbl |>
+circled_hedged_plot <- cum_pnls_tbl |>
     ggplot(aes(x = date_entry, y = cum_position_dollar_pnl * 100, color = "name")) +
     geom_line() +
     geom_point(
@@ -348,13 +437,7 @@ cum_pnls_tbl |>
         stroke = 1.5,
         shape = 1
     ) +
-    scale_y_continuous(
-        labels = scales::dollar
-    ) +
-    scale_color_manual(
-        values = nedhmn_palette
-    ) +
-    nedhmn_theme() +
+    scale_y_continuous(labels = scales::dollar) +
     labs(
         title = "Short Strangle with Circled Tail Put Hedge",
         subtitle = sprintf(
@@ -370,5 +453,28 @@ cum_pnls_tbl |>
         )
     )
 
-# ggsave("apps/spy-strangles-with-put-hedge/assets/circled-hedged-short-strangle-pnl.png", height = 4, width = 8)
+circled_hedged_plot +
+    scale_color_manual(values = viridis::viridis(1, option = "E")) +
+    theme(legend.position = "none")
+```
+
+```{r include=FALSE, eval=FALSE}
+styled_circled_hedged_plot <- circled_hedged_plot +
+    scale_color_manual(values = nedhmn_palette) +
+    nedhmn_theme()
+
+ggsave(
+    filename = "apps/spy-strangles-with-put-hedge/public/circled-hedged-short-strangle-pnl.png",
+    plot = styled_circled_hedged_plot,
+    height = 4,
+    width = 8
+)
+```
+
+```{r include=FALSE, eval=FALSE}
+rmarkdown::render(
+    "apps/spy-strangles-with-put-hedge/main.Rmd",
+    output_file = "README.md",
+    knit_root_dir = getwd()
+)
 ```
