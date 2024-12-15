@@ -27,6 +27,9 @@ Ned H
 ``` r
 library(gt)
 library(tidyverse)
+
+# Blog styling
+source("packages/utils/aesthetics.R")
 ```
 
 ### Load Strangle Data
@@ -357,25 +360,6 @@ SPY190114P00249000
 
 </div>
 
-<!-- 
-##  Inspecting bq_strangle_tbl
-# spc_tbl_ [1,069 x 14] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
-#  $ call_id                  : chr [1:1069] "SPY190109C00255000" ...
-#  $ put_id                   : chr [1:1069] "SPY190109P00242000" ...
-#  $ date_entry               : Date[1:1069], format: "2019-01-02" ...
-#  $ date_exit                : Date[1:1069], format: "2019-01-09" ...
-#  $ expiration               : Date[1:1069], format: "2019-01-09" ...
-#  $ dte                      : num [1:1069] 7 7 ...
-#  $ stock_price_entry        : num [1:1069] 249 ...
-#  $ stock_price_exit         : num [1:1069] 258 ...
-#  $ call_delta_entry         : num [1:1069] 0.205 ...
-#  $ put_delta_entry          : num [1:1069] -0.19 ...
-#  $ strangle_price_entry     : num [1:1069] 1.7 ...
-#  $ strangle_price_exit      : num [1:1069] 2.81 ...
-#  $ short_strangle_dollar_pnl: num [1:1069] -1.11 ...
-#  $ short_strangle_pct_pnl   : num [1:1069] -0.656 ...
- -->
-
 ### Query Contango Data
 
 Query contango data from [ORATS
@@ -512,15 +496,6 @@ SPY
 
 </div>
 
-<!--
-## Inspecting contango_tbl  
-&#10;tibble [4,509 x 4] (S3: tbl_df/tbl/data.frame)
- $ ticker         : chr [1:4509] "SPY" ...
- $ tradedate      : Date[1:4509], format: "2007-01-03" ...
- $ contango       : num [1:4509] 0.48 0.55 ...
- $ lagged_contango: num [1:4509] NA 0.48 ...
- -->
-
 ### Join tables into a base table
 
 Joining the contango and strangle prices tables to start doing more
@@ -531,7 +506,7 @@ base_tbl <- bq_strangle_tbl |>
     left_join(contango_tbl[, c("tradedate", "lagged_contango")], by = c("date_entry" = "tradedate")) |>
     drop_na(lagged_contango)
 
-# write_csv(base_tbl, "data/base-tbl.csv")
+# write_csv(base_tbl, "apps/contango-strategy/data/base-tbl.csv")
 
 # Create date ranges
 from_date <- min(base_tbl$date_entry) # 2019-01-02
@@ -890,14 +865,10 @@ base_summary_tbl <- base_tbl |>
     ) |>
     mutate(across(mean:max, function(x) scales::percent(x, big.mark = ",")))
 
-base_tbl |>
+short_strangle_returns_plot <- base_tbl |>
     ggplot(aes(x = short_strangle_pct_pnl, fill = "name")) +
     geom_histogram(bins = 100) +
     scale_x_continuous(labels = scales::percent) +
-    scale_fill_manual(
-        # values = nedhmn_palette
-        values = viridis::viridis(1, option = "E")
-    ) +
     labs(
         title = "SPY Short Strangle Returns",
         subtitle = sprintf(
@@ -911,16 +882,14 @@ base_tbl |>
             str_wrap(90),
         x = "Short Strangle Return",
         y = "Frequency"
-    ) +
-    # nedhmn_theme()
+    )
+
+short_strangle_returns_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
     theme(legend.position = "none")
 ```
 
-![](rmarkdown/unnamed-chunk-5-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-strangle-returns-distribution.png", width = 8, height = 4)
-```
+![](dist/images/unnamed-chunk-5-1.png)<!-- -->
 
 ### Strangle Deltas
 
@@ -939,13 +908,9 @@ delta_summaries <- delta_tbl |>
     ) |>
     mutate(across(sd:max, function(x) round(x, 2)))
 
-delta_tbl |>
+strangle_deltas_plot <- delta_tbl |>
     ggplot(aes(x = strangle_delta, fill = "SPY")) +
     geom_histogram(bins = 100) +
-    scale_fill_manual(
-        values = viridis::viridis(1, option = "E")
-        # values = nedhmn_palette
-    ) +
     labs(
         title = "SPY Strangle Deltas",
         subtitle = sprintf(
@@ -959,16 +924,14 @@ delta_tbl |>
             str_wrap(width = 80),
         x = "Delta",
         y = "Frequency"
-    ) +
-    # nedhmn_theme()
+    )
+
+strangle_deltas_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
     theme(legend.position = "none")
 ```
 
-![](rmarkdown/unnamed-chunk-6-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-strangle-deltas-distribution.png", width = 8, height = 4)
-```
+![](dist/images/unnamed-chunk-7-1.png)<!-- -->
 
 ### Strangle Prices
 
@@ -984,15 +947,11 @@ price_summaries <- base_tbl |>
     ) |>
     mutate(across(c(mean, min, max), function(x) scales::dollar(round(x, 2))))
 
-base_tbl |>
+strangle_prices_plot <- base_tbl |>
     select(date_entry, strangle_price_entry) |>
     ggplot(aes(x = strangle_price_entry, fill = "name")) +
     geom_histogram(bins = 100) +
     scale_x_continuous(labels = scales::dollar) +
-    scale_fill_manual(
-        values = viridis::viridis(1, option = "E")
-        # values = nedhmn_palette
-    ) +
     labs(
         title = "SPY Strangle Prices",
         subtitle = sprintf(
@@ -1005,24 +964,18 @@ base_tbl |>
         ),
         x = "Strangle Prices",
         y = "Frequency"
-    ) +
-    # nedhmn_theme()
+    )
+
+strangle_prices_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
     theme(legend.position = "none")
 ```
 
-![](rmarkdown/unnamed-chunk-7-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-strangle-prices-distribution.png", width = 8, height = 4)
-```
+![](dist/images/unnamed-chunk-9-1.png)<!-- -->
 
 ### Contango
 
 TODO
-
-``` r
-# TODO
-```
 
 ## Decile Analysis
 
@@ -1036,7 +989,7 @@ bucket_maxes <- base_tbl |>
     summarize(max_contango = max(lagged_contango))
 
 # Now create the plot with custom labels
-base_tbl |>
+deciles_total_plot <- base_tbl |>
     mutate(contango_ntile = ntile(lagged_contango, 10)) |>
     group_by(contango_ntile) |>
     summarize(mean_pnl = mean(short_strangle_pct_pnl)) |>
@@ -1050,10 +1003,6 @@ base_tbl |>
             paste0(x, "\n<= ", round(bucket_maxes$max_contango[x], 2))
         }
     ) +
-    scale_fill_manual(
-        values = viridis::viridis(1, option = "E")
-        # values = nedhmn_palette
-    ) +
     labs(
         title = "Contango Decile vs Mean Short Strangle PnL",
         subtitle = sprintf(
@@ -1063,21 +1012,19 @@ base_tbl |>
         ),
         x = "Contango Deciles",
         y = "Mean Short Strangle Returns"
-    ) +
-    # nedhmn_theme()
+    )
+
+deciles_total_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
     theme(legend.position = "none")
 ```
 
-![](rmarkdown/unnamed-chunk-9-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-contango-deciles-total.png", width = 8, height = 4)
-```
+![](dist/images/unnamed-chunk-11-1.png)<!-- -->
 
 ### Across Years
 
 ``` r
-base_tbl |>
+deciles_years_plot <- base_tbl |>
     mutate(year = year(date_entry)) |>
     group_by(year) |>
     mutate(contango_ntile = ntile(lagged_contango, 10)) |>
@@ -1087,26 +1034,20 @@ base_tbl |>
     geom_col() +
     scale_y_continuous(labels = scales::percent) +
     scale_x_continuous(breaks = 1:10) +
-    scale_fill_manual(
-        values = viridis::viridis(1, option = "E")
-        # values = nedhmn_palette
-    ) +
     labs(
         title = "Contango Decile vs Mean Short Strangle PnL by Year",
         subtitle = "SPY contango and 7dte 20delta short strangle percent returns by year",
         x = "Contango Deciles",
         y = "Mean Short Strangle Returns"
     ) +
-    facet_wrap(~year, scales = "free") +
-    # nedhmn_theme()
+    facet_wrap(~year, scales = "free")
+
+deciles_years_plot +
+    scale_fill_manual(values = viridis::viridis(1, option = "E")) +
     theme(legend.position = "none")
 ```
 
-![](rmarkdown/unnamed-chunk-10-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-contango-deciles-years.png", width = 8, height = 6)
-```
+![](dist/images/unnamed-chunk-13-1.png)<!-- -->
 
 ## Strategy Comparisons
 
@@ -1130,7 +1071,7 @@ portfolios_tbl <- base_tbl |>
     # Multiplying percent returns by $1k
     mutate(across(c("cum_contango_strat_pct_pnl", "cum_short_strangle_pct_pnl"), function(x) x * 1000, .names = "{.col}_1k"))
 
-portfolios_tbl |>
+portfolios_plot <- portfolios_tbl |>
     select(date_entry, cum_contango_strat_pct_pnl_1k, cum_short_strangle_pct_pnl_1k) |>
     pivot_longer(2:3) |>
     arrange(name, date_entry) |>
@@ -1148,21 +1089,16 @@ portfolios_tbl |>
             width = 100
         ),
         color = "Portfolios"
-    ) +
+    )
+
+portfolios_plot +
     scale_color_manual(
         values = viridis::viridis(3)[c(1, 2)],
-        # values = nedhmn_palette[c(1, 3)],
         labels = c("cum_contango_strat_pct_pnl_1k" = "Contango Strategy", "cum_short_strangle_pct_pnl_1k" = "Benchmark")
-    ) # + nedhmn_theme(show_legend = TRUE)
+    )
 ```
 
-![](rmarkdown/unnamed-chunk-11-1.png)<!-- -->
-
-``` r
-# ggsave("apps/contango-strategy/assets/blog-cumulative-portfolios.png", height = 4, width = 8)
-```
-
-<!-- Saving Data -->
+![](dist/images/unnamed-chunk-15-1.png)<!-- -->
 
 ### Summary Table
 
@@ -1338,5 +1274,3 @@ Contango Strategy
 </table>
 
 </div>
-
-<!-- Saving Table -->
