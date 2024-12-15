@@ -470,11 +470,3 @@ ggsave(
     width = 8
 )
 ```
-
-```{r include=FALSE, eval=FALSE}
-rmarkdown::render(
-    "apps/spy-strangles-with-put-hedge/main.Rmd",
-    output_file = "README.md",
-    knit_root_dir = getwd()
-)
-```

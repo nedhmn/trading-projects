@@ -473,11 +473,3 @@ summary_tbl |>
     tab_header(title = "Portfolio Summaries") |>
     gtsave("apps/contango-strategy/public/summary-tbl.png")
 ```
-
-```{r include=FALSE, eval=FALSE}
-rmarkdown::render(
-    "apps/contango-strategy/main.Rmd",
-    output_file = "README.md",
-    knit_root_dir = getwd()
-)
-```
