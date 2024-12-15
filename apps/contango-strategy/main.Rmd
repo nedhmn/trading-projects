@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
     warning = FALSE,
     message = FALSE,
     fig.height = 4,
-    fig.width = 8,
+    fig.width = 12,
     fig.align = "center",
     fig.path = "dist/images/"
 )
